@@ -1,8 +1,10 @@
 package com.neverless.spec.stubs;
 
+import com.neverless.domain.Amount;
 import com.neverless.integration.WithdrawalService;
 
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -15,12 +17,16 @@ import static com.neverless.integration.WithdrawalService.WithdrawalState.PROCES
  * This is a sample stub for withdrawal service.
  * You can use this one or implement your own, given it follow correct specification
  */
-public class WithdrawalServiceStub<T> implements WithdrawalService<T> {
-    private final ConcurrentMap<WithdrawalId, Withdrawal<T>> requests = new ConcurrentHashMap<>();
+public class WithdrawalServiceStub implements WithdrawalService {
+    private final ConcurrentMap<WithdrawalId, Withdrawal> requests = new ConcurrentHashMap<>();
+    private boolean expectDowntime = false;
 
     @Override
-    public void requestWithdrawal(WithdrawalId id, Address address, T amount) { // Please substitute T with preferred type
-        final var existing = requests.putIfAbsent(id, new Withdrawal<>(finalState(), finaliseAt(), address, amount));
+    public void requestWithdrawal(WithdrawalId id, Address address, Amount amount) {
+        if (expectDowntime) {
+            throw new RuntimeException("500 Service Unavailable");
+        }
+        final var existing = requests.putIfAbsent(id, new Withdrawal(finalState(), finaliseAt(), address, amount));
         if (existing != null && !(Objects.equals(existing.address, address) && Objects.equals(existing.amount, amount)))
             throw new IllegalStateException("Withdrawal request with id[%s] is already present".formatted(id));
     }
@@ -41,7 +47,31 @@ public class WithdrawalServiceStub<T> implements WithdrawalService<T> {
         return request.finalState();
     }
 
-    record Withdrawal<T>(WithdrawalState state, long finaliseAt, Address address, T amount) {
+    public void reset() {
+        requests.clear();
+        expectDowntime = false;
+    }
+
+    public int invocationCount() {
+        return requests.size();
+    }
+
+    public void registerResponse(String extWithdrawalId, WithdrawalState externalState) {
+        requests.computeIfPresent(
+            new WithdrawalId(UUID.fromString(extWithdrawalId)),
+            (wid, old) -> new Withdrawal(externalState, 0, old.address, old.amount)
+        );
+    }
+
+    public void expectDowntime() {
+        expectDowntime = true;
+    }
+
+    public Withdrawal getRequest(WithdrawalId withdrawalId) {
+        return requests.get(withdrawalId);
+    }
+
+    public record Withdrawal(WithdrawalState state, long finaliseAt, Address address, Amount amount) {
         public WithdrawalState finalState() {
             return finaliseAt <= System.currentTimeMillis() ? state : PROCESSING;
         }

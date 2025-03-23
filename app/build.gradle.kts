@@ -18,6 +18,7 @@ dependencies {
     implementation(libs.javalin.bundle)
 
     testImplementation(libs.assertj.core)
+    testImplementation(libs.assertj.core)
     testImplementation(libs.mockito.core)
 
     testFunctionalImplementation(libs.assertj.core)

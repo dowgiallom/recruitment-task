@@ -1,13 +1,11 @@
 package com.neverless.spec;
 
-import com.neverless.domain.AccountId;
-import org.junit.jupiter.api.Disabled;
+import com.neverless.domain.account.AccountId;
 import org.junit.jupiter.api.Test;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Disabled("Please implement AccountRepository and Account first")
 public class AccountsSpec extends FunctionalSpec {
 
     protected AccountsSpec(ApplicationContext context) {
@@ -17,6 +15,15 @@ public class AccountsSpec extends FunctionalSpec {
     @Test
     void should_respond_with_account_on_accounts_get_when_exists() throws Exception {
         final var id = AccountId.random();
+        // given
+        given()
+            .body("""
+            {
+                "id": "%s",
+                "initialBalance": "0"
+            }
+            """.formatted(id.value()))
+            .post("/accounts");
 
         // when
         final var response = when().get("/accounts/{id}", id.value()).thenReturn();
@@ -26,7 +33,8 @@ public class AccountsSpec extends FunctionalSpec {
         assertThatJson(response.body().asString()).isEqualTo(
             """
             {
-                "id": "%s"
+                "id": "%s",
+                "balance": 0
             }
             """.formatted(id.value())
         );
