@@ -37,5 +37,6 @@ testing {
 }
 
 tasks.named("check") {
+    dependsOn(testing.suites.named("test"))
     dependsOn(testing.suites.named("testFunctional"))
 }

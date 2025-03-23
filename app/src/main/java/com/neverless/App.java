@@ -6,18 +6,31 @@ package com.neverless;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.neverless.domain.AccountRepository;
+import com.neverless.application.account.InMemoryAccountRepository;
+import com.neverless.application.withdrawal.InMemoryWithdrawalRepository;
+import com.neverless.application.withdrawal.WithdrawalCommandServiceImpl;
+import com.neverless.application.withdrawal.WithdrawalQueryServiceImpl;
+import com.neverless.domain.Amount;
+import com.neverless.domain.account.AccountRepository;
+import com.neverless.domain.withdrawal.WithdrawalCommandService;
+import com.neverless.domain.withdrawal.WithdrawalQueryService;
+import com.neverless.domain.withdrawal.WithdrawalRepository;
+import com.neverless.integration.WithdrawalService;
 import com.neverless.resources.Resources;
 import io.javalin.Javalin;
 import io.javalin.json.JavalinJackson;
-
+import kotlin.NotImplementedError;
 
 public class App {
-    private final AccountRepository accountRepo = null;
-    private final Resources resources = new Resources(accountRepo);
     private final Javalin javalin;
 
-    public App() {
+    public App(WithdrawalService withdrawalService) {
+        final AccountRepository accountRepo = new InMemoryAccountRepository();
+        final WithdrawalRepository withdrawalRepository = new InMemoryWithdrawalRepository();
+        final WithdrawalCommandService withdrawalCommandService = new WithdrawalCommandServiceImpl(withdrawalRepository, accountRepo, withdrawalService);
+        final WithdrawalQueryService withdrawalQueryService = new WithdrawalQueryServiceImpl(withdrawalRepository, withdrawalService, withdrawalCommandService);
+        final Resources resources = new Resources(accountRepo, withdrawalCommandService, withdrawalQueryService);
+
         this.javalin = Javalin.create(config -> {
             config.jsonMapper(new JavalinJackson(
                 new ObjectMapper()
@@ -43,7 +56,18 @@ public class App {
     }
 
     public static void main(String[] args) {
-        final var app = new App();
+        final var app = new App(new WithdrawalService() {
+            // TODO-MD actual Withdrawal service integration needed
+            @Override
+            public void requestWithdrawal(WithdrawalId id, Address address, Amount amount) {
+                throw new NotImplementedError();
+            }
+
+            @Override
+            public WithdrawalState getRequestState(WithdrawalId id) {
+                throw new NotImplementedError();
+            }
+        });
         Runtime.getRuntime().addShutdownHook(new Thread(app::stop));
         app.start(8080);
     }

@@ -1,6 +1,8 @@
 package com.neverless.spec;
 
 import com.neverless.App;
+import com.neverless.integration.WithdrawalService;
+import com.neverless.spec.stubs.WithdrawalServiceStub;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.specification.RequestSpecification;
@@ -14,7 +16,6 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 public abstract class FunctionalSpec {
 
     protected final App application;
-
     private final RequestSpecification specification;
 
     protected FunctionalSpec(ApplicationContext context) {
@@ -51,10 +52,12 @@ public abstract class FunctionalSpec {
     public final static class ApplicationContext implements ExtensionContext.Store.CloseableResource {
 
         public final App app;
+        public final WithdrawalServiceStub withdrawalServiceStub;
 
         public ApplicationContext() {
-            app = new App();
-            app.start(0);
+            this.withdrawalServiceStub = new WithdrawalServiceStub();
+            this.app = new App(withdrawalServiceStub);
+            this.app.start(0);
         }
 
         @Override

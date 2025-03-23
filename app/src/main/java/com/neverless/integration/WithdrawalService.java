@@ -2,6 +2,7 @@ package com.neverless.integration;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.neverless.domain.Amount;
 
 import java.util.UUID;
 
@@ -13,7 +14,7 @@ import static java.util.Objects.requireNonNull;
  * <p>
  * MUST BE USED AS IS AND NOT BE MODIFIED IN ANY WAY, WITH EXCEPTIONS TO T
  */
-public interface WithdrawalService<T> {
+public interface WithdrawalService {
     /**
      * Request a withdrawal for given address and amount. Completes at some moment in the future, might take about 1 second or significantly longer
      * Use #getRequestState to check withdrawal status.
@@ -22,7 +23,7 @@ public interface WithdrawalService<T> {
      * @param amount - an amount to withdraw (please replace T with type you want to use)
      * @throws IllegalArgumentException in case there's different address or amount for given id
      */
-    void requestWithdrawal(WithdrawalId id, Address address, T amount); // Please substitute T with preferred type
+    void requestWithdrawal(WithdrawalId id, Address address, Amount amount); // Please substitute T with preferred type
 
     /**
      * Return current state of withdrawal
